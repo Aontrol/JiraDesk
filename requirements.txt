@@ -1,0 +1,9 @@
+# JiraDesk — Personal Workflow Tracker
+# -------------------------------------------------------------
+# Runtime: 
+# Zero external third-party dependencies required!
+# Python 3.9+ on Windows bundles tkinter and sqlite3 by default.
+
+# Optional Executable Compilation Dependency:
+# Only needed if you run build_exe.bat or build_installer.bat
+pyinstaller>=5.13.0
