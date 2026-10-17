@@ -20,7 +20,20 @@ class JiraDeskApp(tk.Tk):
     def __init__(self, db_path: Optional[str] = None):
         super().__init__()
         self.title("JiraDesk — Personal Workflow Tracker")
-        self.geometry("1280x820")
+        # Desired window dimensions
+        width = 1280
+        height = 820
+
+        # Get user's screen dimensions
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        # Calculate center coordinates (with safety floor at 0)
+        x = max(0, int((screen_width - width) / 2))
+        y = max(0, int((screen_height - height) / 2))
+
+        # Apply centered geometry
+        self.geometry(f"{width}x{height}+{x}+{y}")
         self.minsize(980, 640)
 
         theme.apply_google_theme(self)
