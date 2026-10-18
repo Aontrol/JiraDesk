@@ -1,21 +1,24 @@
 """
 Google Minimalist Material Design Theme & UI Component Helpers for JiraDesk.
+Provides consistent colors, typography, TTK styling, focus rings, window centering, and icon setup.
 """
+import os
 import tkinter as tk
 from tkinter import ttk
+from typing import Optional
 
 # --- Google Material Design Color Palette ---
-COLOR_SURFACE = "#f8f9fa"        # Google Grey 50 (App background)
-COLOR_CARD = "#ffffff"           # Card & Panel background
+COLOR_SURFACE = "#f8f9fa"        # Google Grey 50 (App canvas background)
+COLOR_CARD = "#ffffff"           # Card & Panel background (White)
 COLOR_BORDER = "#dadce0"         # Google Grey 300 (Subtle borders)
-COLOR_BORDER_LIGHT = "#e8eaed"   # Dividers
-COLOR_HOVER = "#f1f3f4"          # Google Grey 100
-COLOR_ACTIVE = "#e8eaed"         # Google Grey 200
+COLOR_BORDER_LIGHT = "#e8eaed"   # Dividers & Hairlines (Google Grey 200)
+COLOR_HOVER = "#f1f3f4"          # Google Grey 100 (Hover state)
+COLOR_ACTIVE = "#e8eaed"         # Google Grey 200 (Pressed/Active state)
 
 # Typography Colors
-COLOR_TEXT_PRIMARY = "#202124"   # Google Grey 900
-COLOR_TEXT_SECONDARY = "#5f6368" # Google Grey 700
-COLOR_TEXT_MUTED = "#80868b"     # Google Grey 600
+COLOR_TEXT_PRIMARY = "#202124"   # Google Grey 900 (High contrast headers & body)
+COLOR_TEXT_SECONDARY = "#5f6368" # Google Grey 700 (Subtitles & captions)
+COLOR_TEXT_MUTED = "#80868b"     # Google Grey 600 (Meta & placeholders)
 COLOR_TEXT_WHITE = "#ffffff"
 
 # Google Accent Colors
@@ -63,7 +66,7 @@ TYPE_CONFIG = {
     "Epic": {"icon": "⚡", "fg": COLOR_PURPLE, "bg": COLOR_PURPLE_LIGHT},
 }
 
-# Typography
+# Typography (Segoe UI with cross-platform clean fallbacks)
 FONT_FAMILY = "Segoe UI"
 FONT_TITLE = (FONT_FAMILY, 15, "bold")
 FONT_SUBTITLE = (FONT_FAMILY, 12, "bold")
@@ -104,7 +107,7 @@ def apply_google_theme(root: tk.Tk):
         borderwidth=0,
         focusthickness=0,
         focuscolor="none",
-        padding=(14, 7)
+        padding=(10, 6)
     )
     style.map(
         "Primary.TButton",
@@ -112,7 +115,7 @@ def apply_google_theme(root: tk.Tk):
         foreground=[("active", COLOR_TEXT_WHITE)]
     )
 
-    # Secondary Outline Button
+    # Secondary Outline Button (Subtle border, white card background)
     style.configure(
         "Secondary.TButton",
         background=COLOR_CARD,
@@ -128,13 +131,30 @@ def apply_google_theme(root: tk.Tk):
         foreground=[("active", COLOR_TEXT_PRIMARY)]
     )
 
-    # Clean Scrollbar
+    # Danger Button (Red outline for delete actions)
+    style.configure(
+        "Danger.TButton",
+        background=COLOR_RED_LIGHT,
+        foreground=COLOR_RED,
+        font=FONT_BODY_BOLD,
+        borderwidth=1,
+        relief="solid",
+        padding=(10, 5)
+    )
+    style.map(
+        "Danger.TButton",
+        background=[("active", COLOR_RED), ("pressed", COLOR_RED_HOVER)],
+        foreground=[("active", COLOR_TEXT_WHITE)]
+    )
+
+    # Clean Material Scrollbar (Visible 14px thumb and track without hairline collapse)
     style.configure(
         "TScrollbar",
         background=COLOR_BORDER,
         troughcolor=COLOR_SURFACE,
         borderwidth=0,
-        arrowsize=0,
+        arrowsize=14,
+        width=14,
         relief="flat"
     )
     style.map(
@@ -142,7 +162,7 @@ def apply_google_theme(root: tk.Tk):
         background=[("active", COLOR_TEXT_MUTED), ("pressed", COLOR_TEXT_SECONDARY)]
     )
 
-    # Combobox
+    # Combobox Styling
     style.configure(
         "TCombobox",
         fieldbackground=COLOR_CARD,
@@ -185,7 +205,52 @@ def apply_google_theme(root: tk.Tk):
     )
 
 
-def create_material_input(parent, initial_text="", font=FONT_BODY, width=None, ipady=4, placeholder=""):
+def set_window_icon(window: tk.Wm):
+    """Sets the application icon for any Tk root or Toplevel window."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    assets_dir = os.path.join(base_dir, "assets")
+    ico_path = os.path.join(assets_dir, "app_icon.ico")
+    png_path = os.path.join(assets_dir, "app_icon.png")
+
+    try:
+        if os.path.exists(ico_path):
+            window.iconbitmap(ico_path)
+        elif os.path.exists(png_path):
+            img = tk.PhotoImage(file=png_path)
+            window.iconphoto(True, img)
+    except Exception:
+        pass
+
+
+def center_window(window: tk.Wm, width: int, height: int, parent: Optional[tk.Wm] = None):
+    """Centers a window on screen or relative to its parent window, clamped to screen bounds."""
+    window.update_idletasks()
+    sw = window.winfo_screenwidth()
+    sh = window.winfo_screenheight()
+
+    # Ensure requested dimensions fit within screen
+    width = min(width, sw - 40)
+    height = min(height, sh - 80)
+
+    if parent and hasattr(parent, "winfo_ismapped") and parent.winfo_ismapped():
+        pw = parent.winfo_width()
+        ph = parent.winfo_height()
+        px = parent.winfo_rootx()
+        py = parent.winfo_rooty()
+        x = px + max(0, (pw - width) // 2)
+        y = py + max(0, (ph - height) // 2)
+    else:
+        x = max(0, (sw - width) // 2)
+        y = max(0, (sh - height) // 2)
+
+    # Clamp coordinates to visible screen
+    x = max(10, min(x, sw - width - 10))
+    y = max(10, min(y, sh - height - 40))
+
+    window.geometry(f"{width}x{height}+{x}+{y}")
+
+
+def create_material_input(parent, initial_text="", font=FONT_BODY, width=None, ipady=4):
     """
     Creates a Google Material styled Entry wrapped inside a subtle container frame
     with interactive Google Blue focus highlight.
@@ -229,7 +294,7 @@ def create_material_input(parent, initial_text="", font=FONT_BODY, width=None, i
     return container, entry
 
 
-def create_material_textarea(parent, height=6, font=FONT_BODY):
+def create_material_textarea(parent, height=4, font=FONT_BODY):
     """
     Creates a Google Material styled Text widget wrapped in a subtle container
     with interactive Google Blue focus highlight.

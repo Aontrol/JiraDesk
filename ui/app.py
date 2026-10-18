@@ -6,7 +6,7 @@ import os
 import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from typing import Optional, List
+from typing import Optional, List, Dict
 from database import Database
 from models import Project, Status, Issue
 from ui.kanban_view import KanbanView
@@ -20,10 +20,10 @@ class JiraDeskApp(tk.Tk):
     def __init__(self, db_path: Optional[str] = None):
         super().__init__()
         self.title("JiraDesk — Personal Workflow Tracker")
-        self.geometry("1280x820")
-        self.minsize(980, 640)
+        self.minsize(1020, 640)
 
         theme.apply_google_theme(self)
+        theme.center_window(self, 1280, 820)
 
         self.db = Database(db_path)
         self.statuses: List[Status] = self.db.get_statuses()
@@ -43,18 +43,7 @@ class JiraDeskApp(tk.Tk):
         self.refresh_all()
 
     def _setup_icon(self):
-        assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
-        ico_path = os.path.join(assets_dir, "app_icon.ico")
-        png_path = os.path.join(assets_dir, "app_icon.png")
-
-        try:
-            if os.path.exists(ico_path):
-                self.iconbitmap(ico_path)
-            elif os.path.exists(png_path):
-                img = tk.PhotoImage(file=png_path)
-                self.iconphoto(True, img)
-        except Exception:
-            pass
+        theme.set_window_icon(self)
 
     def _build_header(self):
         header = tk.Frame(self, bg=theme.COLOR_CARD, padx=20, pady=10, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
@@ -82,14 +71,14 @@ class JiraDeskApp(tk.Tk):
         proj_group.pack(side="left", padx=(0, 10))
 
         tk.Label(proj_group, text="Project:", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_CARD).pack(side="left", padx=(0, 6))
-        self.proj_combo = ttk.Combobox(proj_group, state="readonly", width=16, font=theme.FONT_BODY)
+        self.proj_combo = ttk.Combobox(proj_group, state="readonly", width=14, font=theme.FONT_BODY)
         self.proj_combo.pack(side="left", padx=(0, 6))
         self.proj_combo.bind("<<ComboboxSelected>>", self._on_project_changed)
 
         new_proj_btn = ttk.Button(proj_group, text="+ Project", style="Secondary.TButton", command=self._open_new_project_dialog)
         new_proj_btn.pack(side="left")
 
-        # Divider between project and search
+        # Subtle divider between project group and search
         tk.Frame(controls_box, bg=theme.COLOR_BORDER, width=1, height=22).pack(side="left", padx=(0, 10))
 
         # 2. Google Material Search Bar with Dynamic Focus Highlight
@@ -113,7 +102,7 @@ class JiraDeskApp(tk.Tk):
             fg=theme.COLOR_TEXT_PRIMARY,
             insertbackground=theme.COLOR_BLUE,
             relief="flat",
-            width=18
+            width=16
         )
         self.search_entry.pack(side="left", ipady=2)
         self.search_entry.bind("<KeyRelease>", self._on_search_key)
@@ -187,7 +176,7 @@ class JiraDeskApp(tk.Tk):
         else:
             self.search_frame.configure(highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
 
-    def _create_chip(self, parent, text, icon, fg_color, bg_color):
+    def _create_chip(self, parent, text: str, icon: str, fg_color: str, bg_color: str):
         """Creates a modern Google Material chip widget."""
         chip_frame = tk.Frame(
             parent,
@@ -214,15 +203,21 @@ class JiraDeskApp(tk.Tk):
         self.stats_bar = tk.Frame(self.stats_bar_outer, bg=theme.COLOR_SURFACE, padx=20, pady=8)
         self.stats_bar.pack(fill="x")
 
-        # Clean Google Material metric chips
+        # Complete Google Material metric chips covering all 5 workflow states
         _, self.chip_total = self._create_chip(
             self.stats_bar, "Total: 0", "📊", theme.COLOR_TEXT_PRIMARY, theme.COLOR_CARD
+        )
+        _, self.chip_backlog = self._create_chip(
+            self.stats_bar, "Backlog: 0", "📦", theme.COLOR_TEXT_SECONDARY, "#f1f3f4"
         )
         _, self.chip_todo = self._create_chip(
             self.stats_bar, "To Do: 0", "⏳", theme.COLOR_BLUE, theme.COLOR_BLUE_LIGHT
         )
         _, self.chip_in_progress = self._create_chip(
             self.stats_bar, "In Progress: 0", "⚡", theme.COLOR_AMBER_DARK, theme.COLOR_YELLOW_LIGHT
+        )
+        _, self.chip_in_review = self._create_chip(
+            self.stats_bar, "In Review: 0", "🔍", theme.COLOR_PURPLE, theme.COLOR_PURPLE_LIGHT
         )
         _, self.chip_done = self._create_chip(
             self.stats_bar, "Done: 0", "✅", theme.COLOR_GREEN, theme.COLOR_GREEN_LIGHT
@@ -429,17 +424,24 @@ class JiraDeskApp(tk.Tk):
         self.kanban_view.populate(issues)
         self.table_view.populate(issues)
 
-        stats = self.db.get_statistics(self.current_project_id)
-        self.chip_total.configure(text=f"Total: {stats['total']}")
-        
-        # Calculate to do count
-        todo_count = 0
+        # Count issues per status name
+        counts: Dict[str, int] = {s.name: 0 for s in self.statuses}
         for i in issues:
-            if i.status_id == 2 or i.status_name == "To Do":
-                todo_count += 1
-        self.chip_todo.configure(text=f"To Do: {todo_count}")
-        self.chip_in_progress.configure(text=f"In Progress: {stats['in_progress']}")
-        self.chip_done.configure(text=f"Done: {stats['done']}")
+            if i.status_name in counts:
+                counts[i.status_name] += 1
+            else:
+                for s in self.statuses:
+                    if s.id == i.status_id:
+                        counts[s.name] = counts.get(s.name, 0) + 1
+
+        stats = self.db.get_statistics(self.current_project_id)
+
+        self.chip_total.configure(text=f"Total: {len(issues)}")
+        self.chip_backlog.configure(text=f"Backlog: {counts.get('Backlog', 0)}")
+        self.chip_todo.configure(text=f"To Do: {counts.get('To Do', 0)}")
+        self.chip_in_progress.configure(text=f"In Progress: {counts.get('In Progress', 0)}")
+        self.chip_in_review.configure(text=f"In Review: {counts.get('In Review', 0)}")
+        self.chip_done.configure(text=f"Done: {counts.get('Done', 0)}")
         self.chip_time.configure(text=f"{stats['formatted_time']} Logged")
 
         curr_proj_name = "All Projects"

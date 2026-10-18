@@ -1,5 +1,6 @@
 """
 List / Table Backlog View for JiraDesk with interactive sorting & zebra striping.
+Features non-overlapping grid scrollbars, dynamic title stretching, and modern empty states.
 """
 import tkinter as tk
 from tkinter import ttk
@@ -41,6 +42,9 @@ class TableView(tk.Frame):
         self.container = tk.Frame(self, bg=theme.COLOR_CARD, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
         self.container.pack(fill="both", expand=True, padx=16, pady=12)
 
+        self.container.grid_rowconfigure(0, weight=1)
+        self.container.grid_columnconfigure(0, weight=1)
+
         columns = ("key", "type", "title", "priority", "status", "time", "created")
         self.tree = ttk.Treeview(
             self.container,
@@ -49,7 +53,7 @@ class TableView(tk.Frame):
             selectmode="browse"
         )
 
-        # Alternating row tag colors
+        # Alternating row tag colors (zebra striping)
         self.tree.tag_configure("oddrow", background="#ffffff")
         self.tree.tag_configure("evenrow", background="#f8f9fa")
 
@@ -65,15 +69,18 @@ class TableView(tk.Frame):
 
         for col_id, heading_text in self.base_headers.items():
             self.tree.heading(col_id, text=heading_text, anchor="w", command=lambda c=col_id: self._sort_by(c))
-            self.tree.column(col_id, width=widths.get(col_id, 100), minwidth=70)
+            # Summary title stretches to absorb window resizing; others remain fixed
+            should_stretch = (col_id == "title")
+            self.tree.column(col_id, width=widths.get(col_id, 100), minwidth=70, stretch=should_stretch)
 
         v_scroll = ttk.Scrollbar(self.container, orient="vertical", command=self.tree.yview)
         h_scroll = ttk.Scrollbar(self.container, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
 
-        v_scroll.pack(side="right", fill="y")
-        h_scroll.pack(side="bottom", fill="x")
-        self.tree.pack(side="left", fill="both", expand=True)
+        # Non-overlapping grid layout for tree and scrollbars
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        v_scroll.grid(row=0, column=1, sticky="ns")
+        h_scroll.grid(row=1, column=0, sticky="ew")
 
         # Empty state banner frame
         self.empty_frame = tk.Frame(self.container, bg=theme.COLOR_CARD)
@@ -90,10 +97,10 @@ class TableView(tk.Frame):
         self.issues_by_iid.clear()
 
         if not issues:
-            self.empty_frame.place(relx=0.5, rely=0.45, anchor="center")
+            self.empty_frame.grid(row=0, column=0, sticky="nsew")
             return
         else:
-            self.empty_frame.place_forget()
+            self.empty_frame.grid_forget()
 
         for idx, issue in enumerate(issues):
             created_short = issue.created_at[:10] if issue.created_at else ""
@@ -146,7 +153,6 @@ class TableView(tk.Frame):
 
         for index, (val, child) in enumerate(data):
             self.tree.move(child, "", index)
-            # Reapply alternating row colors after sort
             tag = "evenrow" if index % 2 == 0 else "oddrow"
             self.tree.item(child, tags=(tag,))
 

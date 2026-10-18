@@ -1,5 +1,6 @@
 """
 Responsive Google Material Kanban Board View for JiraDesk.
+Features grid-stabilized scrollable columns, autohiding scrollbars, and modern empty states.
 """
 import tkinter as tk
 from tkinter import ttk
@@ -32,7 +33,7 @@ class KanbanView(tk.Frame):
         self._build_board()
 
     def _build_board(self):
-        # Outer Canvas for Horizontal Scrolling
+        # Outer Canvas for Horizontal Board Scrolling
         self.canvas = tk.Canvas(self, bg=theme.COLOR_SURFACE, highlightthickness=0)
         self.h_scrollbar = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
         self.canvas.configure(xscrollcommand=self.h_scrollbar.set)
@@ -111,36 +112,44 @@ class KanbanView(tk.Frame):
             divider = tk.Frame(col_outer, bg=theme.COLOR_BORDER, height=1)
             divider.pack(fill="x")
 
-            # Column scrollable cards area
-            col_canvas = tk.Canvas(col_outer, bg=theme.COLOR_HOVER, highlightthickness=0)
-            col_v_scroll = ttk.Scrollbar(col_outer, orient="vertical", command=col_canvas.yview)
+            # Grid-stabilized cards body area (prevents layout shifts on scrollbar toggle)
+            cards_body = tk.Frame(col_outer, bg=theme.COLOR_HOVER)
+            cards_body.pack(fill="both", expand=True)
+
+            cards_body.grid_rowconfigure(0, weight=1)
+            cards_body.grid_columnconfigure(0, weight=1)
+
+            col_canvas = tk.Canvas(cards_body, bg=theme.COLOR_HOVER, highlightthickness=0)
+            col_v_scroll = ttk.Scrollbar(cards_body, orient="vertical", command=col_canvas.yview)
             col_canvas.configure(yscrollcommand=col_v_scroll.set)
 
             cards_frame = tk.Frame(col_canvas, bg=theme.COLOR_HOVER, padx=6, pady=8)
             col_window = col_canvas.create_window((0, 0), window=cards_frame, anchor="nw")
 
+            col_canvas.grid(row=0, column=0, sticky="nsew")
+            col_v_scroll.grid(row=0, column=1, sticky="ns")
+            col_v_scroll.grid_remove()  # Initially hidden until overflow
+
             col_canvas.bind(
                 "<Configure>",
                 lambda e, c=col_canvas, w=col_window: c.itemconfig(w, width=e.width)
             )
-            
-            # Helper to autohide/show scrollbar dynamically based on content height
+
+            # Clean helper to autohide/show scrollbar without packing jitter
             def _check_scroll(e=None, c=col_canvas, s=col_v_scroll, f=cards_frame):
                 c.configure(scrollregion=c.bbox("all"))
                 bbox = c.bbox("all")
                 if bbox and (bbox[3] - bbox[1]) > c.winfo_height() and c.winfo_height() > 50:
-                    s.pack(side="right", fill="y")
+                    s.grid()
                 else:
-                    s.pack_forget()
+                    s.grid_remove()
 
             cards_frame.bind("<Configure>", _check_scroll)
             col_canvas.bind("<Configure>", _check_scroll)
 
-            # Bind vertical mouse wheel to column
+            # Bind vertical mouse wheel to column canvas & card frame
             col_canvas.bind("<MouseWheel>", lambda e, c=col_canvas: c.yview_scroll(-1 if e.delta > 0 else 1, "units"))
             cards_frame.bind("<MouseWheel>", lambda e, c=col_canvas: c.yview_scroll(-1 if e.delta > 0 else 1, "units"))
-
-            col_canvas.pack(side="left", fill="both", expand=True)
 
             self.column_canvases[status.id] = col_canvas
             self.column_cards_frames[status.id] = cards_frame

@@ -1,5 +1,6 @@
 """
 Polished and modern Google Material Project Creation Modal Dialog for JiraDesk.
+Features pinned bottom action bar, app icon setup, centered positioning, and focus rings.
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -15,9 +16,11 @@ class ProjectDialog(tk.Toplevel):
         self.on_created = on_created
 
         self.title("Create New Project")
-        self.geometry("500x420")
         self.resizable(False, False)
         self.configure(bg=theme.COLOR_SURFACE)
+
+        # Apply app icon to dialog window
+        theme.set_window_icon(self)
 
         self.transient(parent)
         self.grab_set()
@@ -25,36 +28,20 @@ class ProjectDialog(tk.Toplevel):
         self._build_ui()
         self._bind_shortcuts()
 
+        # Center dialog relative to parent window
+        theme.center_window(self, 480, 390, parent)
+
     def _build_ui(self):
+        # 1. Top Header Banner
         header = tk.Frame(self, bg=theme.COLOR_CARD, padx=24, pady=16, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
-        header.pack(fill="x")
+        header.pack(side="top", fill="x")
 
         lbl_title = tk.Label(header, text="Create Workspace Project", font=theme.FONT_TITLE, fg=theme.COLOR_TEXT_PRIMARY, bg=theme.COLOR_CARD)
         lbl_title.pack(side="left")
 
-        form = tk.Frame(self, bg=theme.COLOR_SURFACE, padx=24, pady=18)
-        form.pack(fill="both", expand=True)
-
-        # Project Key
-        tk.Label(form, text="Project Key (e.g., DEV, APP, LIFE) *", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_PRIMARY, bg=theme.COLOR_SURFACE).pack(anchor="w", pady=(0, 2))
-        tk.Label(form, text="2–10 uppercase letters used as prefix (e.g., DEV-101)", font=theme.FONT_CAPTION, fg=theme.COLOR_TEXT_MUTED, bg=theme.COLOR_SURFACE).pack(anchor="w", pady=(0, 4))
-        key_box, self.key_entry = theme.create_material_input(form, ipady=5)
-        key_box.pack(fill="x", pady=(0, 14))
-        self.key_entry.bind("<KeyRelease>", self._on_key_release)
-
-        # Project Name
-        tk.Label(form, text="Project Name *", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_PRIMARY, bg=theme.COLOR_SURFACE).pack(anchor="w", pady=(0, 4))
-        name_box, self.name_entry = theme.create_material_input(form, ipady=5)
-        name_box.pack(fill="x", pady=(0, 14))
-
-        # Description
-        tk.Label(form, text="Description (Optional)", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).pack(anchor="w", pady=(0, 4))
-        desc_box, self.desc_entry = theme.create_material_input(form, ipady=5)
-        desc_box.pack(fill="x", pady=(0, 14))
-
-        # Bottom Bar
+        # 2. Bottom Action Bar (MUST be packed BEFORE expanding form to prevent being pushed off-screen)
         bottom_bar = tk.Frame(self, bg=theme.COLOR_CARD, padx=24, pady=14, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
-        bottom_bar.pack(fill="x", side="bottom")
+        bottom_bar.pack(side="bottom", fill="x")
 
         tk.Label(
             bottom_bar,
@@ -64,11 +51,32 @@ class ProjectDialog(tk.Toplevel):
             bg=theme.COLOR_CARD
         ).pack(side="left")
 
-        cancel_btn = ttk.Button(bottom_bar, text="Cancel", style="Secondary.TButton", command=self.destroy)
-        cancel_btn.pack(side="right", padx=(8, 0))
-
-        create_btn = ttk.Button(bottom_bar, text="Create Project", style="Primary.TButton", command=self._create_project)
+        create_btn = ttk.Button(bottom_bar, text="Create Project", style="Primary.TButton", width=14, command=self._create_project)
         create_btn.pack(side="right")
+
+        cancel_btn = ttk.Button(bottom_bar, text="Cancel", style="Secondary.TButton", width=8, command=self.destroy)
+        cancel_btn.pack(side="right", padx=(0, 8))
+
+        # 3. Middle Form Area (expands between header and bottom_bar)
+        form = tk.Frame(self, bg=theme.COLOR_SURFACE, padx=24, pady=16)
+        form.pack(side="top", fill="both", expand=True)
+
+        # Project Key
+        tk.Label(form, text="Project Key (e.g., DEV, APP, LIFE) *", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_PRIMARY, bg=theme.COLOR_SURFACE).pack(anchor="w", pady=(0, 2))
+        tk.Label(form, text="2–10 uppercase letters used as prefix (e.g., DEV-101)", font=theme.FONT_CAPTION, fg=theme.COLOR_TEXT_MUTED, bg=theme.COLOR_SURFACE).pack(anchor="w", pady=(0, 4))
+        key_box, self.key_entry = theme.create_material_input(form, ipady=4)
+        key_box.pack(fill="x", pady=(0, 12))
+        self.key_entry.bind("<KeyRelease>", self._on_key_release)
+
+        # Project Name
+        tk.Label(form, text="Project Name *", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_PRIMARY, bg=theme.COLOR_SURFACE).pack(anchor="w", pady=(0, 4))
+        name_box, self.name_entry = theme.create_material_input(form, ipady=4)
+        name_box.pack(fill="x", pady=(0, 12))
+
+        # Description
+        tk.Label(form, text="Description (Optional)", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).pack(anchor="w", pady=(0, 4))
+        desc_box, self.desc_entry = theme.create_material_input(form, ipady=4)
+        desc_box.pack(fill="x", pady=(0, 8))
 
         self.after(50, lambda: self.key_entry.focus_set())
 

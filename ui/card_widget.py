@@ -1,5 +1,6 @@
 """
 Polished Google Material-styled Kanban card widget with 1-click status transitions.
+Features dynamic responsive wraplength, smooth hover transitions, and universal double-click.
 """
 import tkinter as tk
 from typing import Callable, List
@@ -29,6 +30,8 @@ class CardWidget(tk.Frame):
         self.on_delete_issue = on_delete_issue
         self.on_log_time = on_log_time
 
+        self.interactive_action_widgets = set()
+
         self._build_ui()
         self._bind_events()
 
@@ -38,7 +41,7 @@ class CardWidget(tk.Frame):
         top_row.pack(fill="x", pady=(0, 6))
 
         # Issue Key (e.g. DEV-101)
-        key_lbl = tk.Label(
+        self.key_lbl = tk.Label(
             top_row,
             text=self.issue.key,
             font=theme.FONT_BADGE,
@@ -47,35 +50,35 @@ class CardWidget(tk.Frame):
             padx=6,
             pady=2
         )
-        key_lbl.pack(side="left")
+        self.key_lbl.pack(side="left")
 
         # Type badge with icon (e.g., 📋 Task)
         type_conf = theme.TYPE_CONFIG.get(self.issue.issue_type, {"icon": "•", "fg": theme.COLOR_TEXT_SECONDARY, "bg": theme.COLOR_HOVER})
-        type_lbl = tk.Label(
+        self.type_lbl = tk.Label(
             top_row,
             text=f"{type_conf['icon']} {self.issue.issue_type}",
             font=theme.FONT_BADGE,
             fg=type_conf["fg"],
             bg=type_conf["bg"],
-            padx=5,
+            padx=6,
             pady=2
         )
-        type_lbl.pack(side="left", padx=4)
+        self.type_lbl.pack(side="left", padx=4)
 
         # Priority badge with icon (e.g., 🟠 High)
         prio_conf = theme.PRIORITY_CONFIG.get(self.issue.priority, {"icon": "•", "fg": theme.COLOR_TEXT_SECONDARY, "bg": theme.COLOR_HOVER})
-        prio_lbl = tk.Label(
+        self.prio_lbl = tk.Label(
             top_row,
             text=f"{prio_conf['icon']} {self.issue.priority}",
             font=theme.FONT_BADGE,
             fg=prio_conf["fg"],
             bg=prio_conf["bg"],
-            padx=5,
+            padx=6,
             pady=2
         )
-        prio_lbl.pack(side="right")
+        self.prio_lbl.pack(side="right")
 
-        # Row 2: Title / Summary (dynamically wrapping)
+        # Row 2: Title / Summary (dynamically wrapping to card width)
         self.title_lbl = tk.Label(
             self,
             text=self.issue.title,
@@ -94,7 +97,7 @@ class CardWidget(tk.Frame):
 
         # Time spent indicator if any
         if self.issue.formatted_time:
-            time_lbl = tk.Label(
+            self.time_lbl = tk.Label(
                 bottom_row,
                 text=f"⏱ {self.issue.formatted_time}",
                 font=theme.FONT_CAPTION,
@@ -103,9 +106,11 @@ class CardWidget(tk.Frame):
                 padx=6,
                 pady=2
             )
-            time_lbl.pack(side="left")
+            self.time_lbl.pack(side="left")
+        else:
+            self.time_lbl = None
 
-        # Action controls on bottom right
+        # Action controls container on bottom right
         action_box = tk.Frame(bottom_row, bg=theme.COLOR_CARD)
         action_box.pack(side="right")
 
@@ -133,6 +138,7 @@ class CardWidget(tk.Frame):
             btn_prev.bind("<Button-1>", lambda e, sid=prev_status.id: self.on_status_change(self.issue.id, sid))
             btn_prev.bind("<Enter>", lambda e, b=btn_prev: b.configure(bg=theme.COLOR_BLUE_LIGHT, fg=theme.COLOR_BLUE))
             btn_prev.bind("<Leave>", lambda e, b=btn_prev: b.configure(bg=theme.COLOR_HOVER, fg=theme.COLOR_TEXT_SECONDARY))
+            self.interactive_action_widgets.add(btn_prev)
 
         # Next status arrow button (▶)
         if curr_status_idx >= 0 and curr_status_idx < len(self.statuses) - 1:
@@ -151,6 +157,7 @@ class CardWidget(tk.Frame):
             btn_next.bind("<Button-1>", lambda e, sid=next_status.id: self.on_status_change(self.issue.id, sid))
             btn_next.bind("<Enter>", lambda e, b=btn_next: b.configure(bg=theme.COLOR_BLUE, fg=theme.COLOR_TEXT_WHITE))
             btn_next.bind("<Leave>", lambda e, b=btn_next: b.configure(bg=theme.COLOR_BLUE_LIGHT, fg=theme.COLOR_BLUE))
+            self.interactive_action_widgets.add(btn_next)
 
         # "⋮" Action Menu Button
         more_btn = tk.Label(
@@ -167,21 +174,24 @@ class CardWidget(tk.Frame):
         more_btn.bind("<Button-1>", self._show_context_menu)
         more_btn.bind("<Enter>", lambda e, b=more_btn: b.configure(bg=theme.COLOR_HOVER, fg=theme.COLOR_TEXT_PRIMARY))
         more_btn.bind("<Leave>", lambda e, b=more_btn: b.configure(bg=theme.COLOR_CARD, fg=theme.COLOR_TEXT_MUTED))
+        self.interactive_action_widgets.add(more_btn)
 
     def _bind_events(self):
         # Dynamically adapt title wraplength when card width changes
         self.bind("<Configure>", self._on_configure)
 
-        # Attach hover and click events
-        self.bind("<Enter>", self._on_enter)
-        self.bind("<Leave>", self._on_leave)
-        self.bind("<Double-Button-1>", lambda e: self.on_open_issue(self.issue.id))
-        self.bind("<Button-3>", self._show_context_menu)
+        # Attach hover, click, and context menu across all card components
+        self._bind_recursive(self)
 
-        for child in self.winfo_children():
-            if not isinstance(child, tk.Frame):
-                child.bind("<Double-Button-1>", lambda e: self.on_open_issue(self.issue.id))
-                child.bind("<Button-3>", self._show_context_menu)
+    def _bind_recursive(self, widget):
+        if widget not in self.interactive_action_widgets:
+            widget.bind("<Enter>", self._on_enter, add="+")
+            widget.bind("<Leave>", self._on_leave, add="+")
+            widget.bind("<Double-Button-1>", lambda e: self.on_open_issue(self.issue.id))
+            widget.bind("<Button-3>", self._show_context_menu)
+
+        for child in widget.winfo_children():
+            self._bind_recursive(child)
 
     def _on_configure(self, event):
         # Ensure title wraps to current card width (minus 28px padding)
