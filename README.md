@@ -1,96 +1,159 @@
-# JiraDesk — Personal Workflow Tracker
+JiraDesk — Personal Workflow Tracker
+JiraDesk is a lightweight desktop application for managing personal tasks and projects. Built with Python, Tkinter, and SQLite, it provides a simple way to organize issues, track progress, and record working hours without relying on cloud services.
 
-> A lightweight, offline-first personal Jira desktop application built with Python, Tkinter, and SQLite, styled with Google's Minimalist Material Design.
+The application runs locally on Windows and features a clean, minimalist interface inspired by Google's Material Design.
 
----
+Features
+Interface and Design
+Clean interface with a white background, blue accents, subtle borders, and readable typography.
+High-DPI display support for Windows.
+Color-coded issue types, priorities, and workflow statuses.
+Simple layouts designed for everyday task management.
+Kanban Board
+Five workflow columns: Backlog, To Do, In Progress, In Review, and Done.
+Live issue counts for each column.
+Quick issue creation directly from the board.
+Previous and next status buttons on issue cards.
+Right-click context menu for moving issues to any status.
+Empty-state messages for columns without issues.
+Scrollable board with mouse wheel support.
+Backlog and List View
+Tabular view built with ttk.Treeview.
+Sortable columns for issue key, summary, priority, status, and logged hours.
+Instant search and filtering.
+Clear search functionality for quickly returning to the full issue list.
+Issue Management
+Create, edit, and manage tasks, bugs, stories, and epics.
+Support for multiple projects with custom issue prefixes, such as DEV-101, APP-24, and LIFE-7.
+Built-in time tracking with hours, minutes, and worklog notes.
+Work history associated with individual issues.
+Project deletion safeguards.
+Data Management
+JiraDesk includes built-in tools for managing local workspace data.
 
-## ✨ Features & Polish
+Database backup: Create consistent SQLite database backups.
+Restore backup: Restore a workspace from an existing backup.
+JSON export: Export projects, issues, and worklogs to a portable JSON file.
+Start fresh: Clear workspace data, with an opportunity to back up existing data first.
+Reset sample data: Restore the default demonstration projects and tasks.
+Keyboard Shortcuts
 
-- **Google Minimalist Material Design**: Clean white cards, Google Blue (`#1a73e8`) accents, subtle borders (`#dadce0`), crisp typography with Windows High-DPI support, and color-coded status chips with type icons (📋 Task, 🐛 Bug, 🚀 Story, ⚡ Epic) and priority dots (🟢, 🔵, 🟠, 🔴).
-- **Interactive Multi-Column Kanban Board**: Visual status columns (`Backlog`, `To Do`, `In Progress`, `In Review`, `Done`) with live issue counters, quick "+ Add" buttons, empty-state placeholders, and flicker-free hover.
-- **1-Click Status Transitions**: Intuitive `◀` and `▶` one-click buttons directly on each card to effortlessly advance or move tasks backward without menu hunting, plus a right-click context menu for direct jumps.
-- **Tabular Backlog / List View**: Full data table powered by `ttk.Treeview` with clickable column headers for interactive ascending/descending sorting across Key, Summary, Priority, Status, and Logged Hours.
-- **Complete Data Management (Backup, Restore & Reset)**:
-  - **📁 Backup Database**: Create atomic live `.db` backups with a single click.
-  - **📥 Restore from Backup**: Easily load and verify prior workspace backups.
-  - **📤 Export All Data (JSON)**: Export projects, issues, and worklogs in portable JSON.
-  - **⚠️ Start Fresh**: Clear all data to start with a clean, blank workspace ready for your personal tasks (with automated backup prompt).
-  - **🔄 Reset to Sample Data**: Restore the default demonstration board and starter tasks anytime.
-- **Workspace Project Management**: Support for multiple projects with custom prefix keys (e.g., `DEV-101`, `APP-24`, `LIFE-7`) and safe deletion guards.
-- **Built-in Time Tracking & Worklogs**: Log hours and minutes directly inside any issue (or upon creating new issues) with notes and work history.
-- **Live Instant Search**: Filter cards and backlog rows in real-time with an instant clear `✕` button.
-- **Keyboard Shortcuts**:
-  - `Ctrl + N`: Create new issue
-  - `Ctrl + F`: Jump to search bar
-  - `F5`: Refresh board
-  - `Ctrl + Enter` (in dialogs): Save issue or project
-  - `Escape` (in dialogs): Close / Cancel
-- **Zero External Runtime Dependencies**: Uses Python's standard library (`tkinter` and `sqlite3`), bundled by default with Python on Windows.
+Shortcut	Action
+Ctrl + N	Create a new issue
+Ctrl + F	Focus the search bar
+F5	Refresh the board
+Ctrl + Enter	Save an issue or project in supported dialogs
+Escape	Close or cancel a dialog
+Getting Started
+Requirements
+Windows
+Python 3 with Tkinter support
+No additional runtime packages required for normal application use
+Run the Application
+Option 1: Using the Windows launcher
 
----
+Double-click start.bat to launch JiraDesk.
 
-## 🚀 One-Click Launch Options (Windows)
+Option 2: Launch without a console window
 
-1. **One-Click Launch (`start.bat`)**:
-   - Double-click `start.bat`. It will locate Python on your system and launch JiraDesk immediately.
-2. **Zero-Console Silent Launch (`start_silent.vbs`)**:
-   - Double-click `start_silent.vbs` to launch JiraDesk cleanly with zero command prompt window.
-3. **Command Line Launch**:
-   ```bash
-   python main.py
-   ```
+Double-click start_silent.vbs to start the application without displaying a command prompt window.
 
----
+Option 3: Using the command line
 
-## 🛠️ Automated Executable & Inno Setup Builder
+Open a terminal in the project directory and run:
 
-Everything is automated so you don't need to manually configure build parameters:
 
-### 1. Build Standalone `.EXE` (`build_exe.bat`)
-- Double-click `build_exe.bat`.
-- The script automatically checks for `pyinstaller`, installs it if missing via `pip`, and compiles:
-  - **Portable Single-File App**: `dist\JiraDesk_Portable.exe` (run it anywhere without installation)
-  - **Directory App**: `dist\JiraDesk\JiraDesk.exe`
+python main.py
+Building a Standalone Executable
+JiraDesk includes an automated build script for packaging the application with PyInstaller.
 
-### 2. Build Inno Setup Windows Installer (`build_installer.bat`)
-- Double-click `build_installer.bat`.
-- The script compiles the executable with PyInstaller, automatically scans your system for the Inno Setup compiler (`ISCC.exe`), and builds a professional Windows Setup Wizard:
-  - **Output Installer**: `Output\JiraDesk_Setup_v1.0.exe`
-  - Features: Desktop shortcut, Start Menu folder, clean uninstaller in Windows Control Panel.
-- *Note*: If you don't have Inno Setup installed, download the free lightweight setup compiler from [jrsoftware.org/isdl.php](https://jrsoftware.org/isdl.php). Your standalone executables will still be ready in `dist\` regardless.
+Run build_exe.bat to check for PyInstaller, install it if necessary, and build the application.
 
----
+The build produces two versions:
 
-## 📁 Project Architecture
+dist\JiraDesk_Portable.exe — a single-file executable.
+dist\JiraDesk\JiraDesk.exe — an executable with its supporting files.
+The generated builds can run without requiring a separate Python installation on the target machine, provided the appropriate executable and bundled files are included.
 
-```
+Building the Windows Installer
+Run build_installer.bat to build the executable and create a Windows installer using Inno Setup.
+
+The installer supports:
+
+A standard Windows installation wizard.
+Desktop shortcuts.
+Start Menu shortcuts.
+Uninstallation through Windows settings.
+The installer output is saved to:
+
+
+Output\JiraDesk_Setup_v1.0.exe
+Inno Setup must be installed for the installer-generation step. If it is unavailable, the standalone executable builds can still be produced.
+
+Download Inno Setup from the official website:
+
+https://jrsoftware.org/isdl.php
+
+Project Structure
+
 JiraDesk/
-├── main.py                  # App entry point with Windows High-DPI awareness
-├── database.py              # SQLite engine with backup, restore, reset, & CRUD
-├── models.py                # Dataclasses: Project, Issue, Status, Worklog
-├── theme.py                 # Google Material theme constants, ttk styles, color schemes
+├── main.py
+├── database.py
+├── models.py
+├── theme.py
 ├── ui/
 │   ├── __init__.py
-│   ├── app.py               # Main window, header toolbar, data & backup menu, search
-│   ├── kanban_view.py       # Multi-column scrollable Kanban board with mouse wheel & empty states
-│   ├── table_view.py        # Backlog list view with interactive column sorting
-│   ├── card_widget.py       # Material issue card with 1-click move buttons & hover polish
-│   ├── issue_dialog.py      # Modal dialog for creating/editing issues & worklogs
-│   └── project_dialog.py    # Modal dialog for creating new workspace projects
+│   ├── app.py
+│   ├── kanban_view.py
+│   ├── table_view.py
+│   ├── card_widget.py
+│   ├── issue_dialog.py
+│   └── project_dialog.py
 ├── assets/
-│   ├── app_icon.ico         # High-resolution multi-size Windows icon
-│   └── app_icon.png         # High-resolution PNG icon
-├── start.bat                # One-click Windows runner
-├── start_silent.vbs         # Silent zero-console VBScript launcher
-├── build_exe.bat            # Automated PyInstaller build script
-├── build_installer.bat      # Master automated script (PyInstaller + Inno Setup)
-├── installer.iss            # Inno Setup 5/6 script with shortcuts & uninstaller
-├── requirements.txt         # Dependency documentation
-└── README.md                # Comprehensive documentation
-```
+│   ├── app_icon.ico
+│   └── app_icon.png
+├── start.bat
+├── start_silent.vbs
+├── build_exe.bat
+├── build_installer.bat
+├── installer.iss
+├── requirements.txt
+└── README.md
+Architecture
 
----
+File	Responsibility
+main.py	Application entry point and Windows display scaling
+database.py	SQLite operations, backups, restoration, and data management
+models.py	Data models for projects, issues, statuses, and worklogs
+theme.py	Colors, typography, and interface styles
+ui/app.py	Main window, toolbar, search, and data-management menu
+ui/kanban_view.py	Kanban board and workflow columns
+ui/table_view.py	Sortable backlog and list view
+ui/card_widget.py	Issue cards and status controls
+ui/issue_dialog.py	Issue creation, editing, and worklog entry
+ui/project_dialog.py	Project creation dialog
+Data Storage
+JiraDesk stores its workspace data in a local SQLite database named jira_tracker.db. The database is created automatically when needed.
 
-## 💾 Database & Storage
+All projects, issues, and worklogs are managed locally. Data is not automatically uploaded to a remote server.
 
-All workflow data is stored locally in an embedded SQLite database (`jira_tracker.db`) created automatically in the application directory. Live atomic backups can be exported or restored anytime via the **⚙ Data & Backup** menu.
+The Data & Backup menu provides access to database backups, restoration, JSON export, and workspace reset options.
+
+Users should keep backups in a separate location to protect against accidental deletion or hardware failure.
+
+Technologies Used
+Python — application logic.
+Tkinter and ttk — desktop interface.
+SQLite — local database.
+PyInstaller — standalone executable packaging.
+Inno Setup — Windows installer creation.
+Design Goals
+JiraDesk is designed around a few practical goals:
+
+Keep personal task management simple.
+Store data locally and work offline.
+Make task status changes quick and intuitive.
+Provide straightforward backup and recovery options.
+Avoid unnecessary runtime dependencies.
+License
+Choose and add a license file before distributing JiraDesk publicly. Until a license is specified, the repository's reuse and redistribution terms remain undefined.
