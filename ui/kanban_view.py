@@ -26,6 +26,7 @@ class KanbanView(tk.Frame):
 
         self.column_cards_frames: Dict[int, tk.Frame] = {}
         self.column_canvases: Dict[int, tk.Canvas] = {}
+        self.column_scrollbars: Dict[int, ttk.Scrollbar] = {}
         self.column_count_labels: Dict[int, tk.Label] = {}
 
         self._build_board()
@@ -39,7 +40,7 @@ class KanbanView(tk.Frame):
         self.h_scrollbar.pack(side="bottom", fill="x")
         self.canvas.pack(side="left", fill="both", expand=True)
 
-        self.columns_container = tk.Frame(self.canvas, bg=theme.COLOR_SURFACE, padx=12, pady=12)
+        self.columns_container = tk.Frame(self.canvas, bg=theme.COLOR_SURFACE, padx=14, pady=12)
         self.canvas_window = self.canvas.create_window((0, 0), window=self.columns_container, anchor="nw")
 
         # Keep canvas scrollregion updated and handle window resize
@@ -65,16 +66,16 @@ class KanbanView(tk.Frame):
             )
             col_outer.grid(row=0, column=idx, padx=6, pady=4, sticky="nsew")
 
-            # Colored Top Accent Bar
+            # Colored Top Accent Bar (3px)
             accent_bar = tk.Frame(col_outer, bg=status.color, height=3)
             accent_bar.pack(fill="x")
 
             # Column Header
-            header = tk.Frame(col_outer, bg=theme.COLOR_CARD, padx=10, pady=8)
+            header = tk.Frame(col_outer, bg=theme.COLOR_CARD, padx=12, pady=10)
             header.pack(fill="x")
 
             dot = tk.Label(header, text="●", font=(theme.FONT_FAMILY, 10), fg=status.color, bg=theme.COLOR_CARD)
-            dot.pack(side="left", padx=(0, 4))
+            dot.pack(side="left", padx=(0, 6))
 
             title_lbl = tk.Label(header, text=status.name, font=theme.FONT_SECTION, fg=theme.COLOR_TEXT_PRIMARY, bg=theme.COLOR_CARD)
             title_lbl.pack(side="left")
@@ -85,23 +86,27 @@ class KanbanView(tk.Frame):
                 font=theme.FONT_BADGE,
                 fg=theme.COLOR_TEXT_SECONDARY,
                 bg=theme.COLOR_HOVER,
-                padx=6,
-                pady=1
+                padx=7,
+                pady=2
             )
-            count_lbl.pack(side="left", padx=6)
+            count_lbl.pack(side="left", padx=8)
             self.column_count_labels[status.id] = count_lbl
 
+            # "+ Add" Quick Button in Header
             add_btn = tk.Label(
                 header,
-                text="+",
-                font=(theme.FONT_FAMILY, 12, "bold"),
+                text="+ Add",
+                font=theme.FONT_CAPTION,
                 fg=theme.COLOR_BLUE,
-                bg=theme.COLOR_CARD,
+                bg=theme.COLOR_BLUE_LIGHT,
                 cursor="hand2",
-                padx=4
+                padx=8,
+                pady=2
             )
             add_btn.pack(side="right")
             add_btn.bind("<Button-1>", lambda e, sid=status.id: self.on_create_issue_with_status(sid))
+            add_btn.bind("<Enter>", lambda e, b=add_btn: b.configure(bg=theme.COLOR_BLUE, fg=theme.COLOR_TEXT_WHITE))
+            add_btn.bind("<Leave>", lambda e, b=add_btn: b.configure(bg=theme.COLOR_BLUE_LIGHT, fg=theme.COLOR_BLUE))
 
             divider = tk.Frame(col_outer, bg=theme.COLOR_BORDER, height=1)
             divider.pack(fill="x")
@@ -118,30 +123,37 @@ class KanbanView(tk.Frame):
                 "<Configure>",
                 lambda e, c=col_canvas, w=col_window: c.itemconfig(w, width=e.width)
             )
-            cards_frame.bind(
-                "<Configure>",
-                lambda e, c=col_canvas: c.configure(scrollregion=c.bbox("all"))
-            )
+            
+            # Helper to autohide/show scrollbar dynamically based on content height
+            def _check_scroll(e=None, c=col_canvas, s=col_v_scroll, f=cards_frame):
+                c.configure(scrollregion=c.bbox("all"))
+                bbox = c.bbox("all")
+                if bbox and (bbox[3] - bbox[1]) > c.winfo_height() and c.winfo_height() > 50:
+                    s.pack(side="right", fill="y")
+                else:
+                    s.pack_forget()
+
+            cards_frame.bind("<Configure>", _check_scroll)
+            col_canvas.bind("<Configure>", _check_scroll)
 
             # Bind vertical mouse wheel to column
             col_canvas.bind("<MouseWheel>", lambda e, c=col_canvas: c.yview_scroll(-1 if e.delta > 0 else 1, "units"))
             cards_frame.bind("<MouseWheel>", lambda e, c=col_canvas: c.yview_scroll(-1 if e.delta > 0 else 1, "units"))
 
-            col_v_scroll.pack(side="right", fill="y")
             col_canvas.pack(side="left", fill="both", expand=True)
 
             self.column_canvases[status.id] = col_canvas
             self.column_cards_frames[status.id] = cards_frame
+            self.column_scrollbars[status.id] = col_v_scroll
 
     def _on_container_configure(self, event=None):
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def _on_canvas_resize(self, event):
-        # Ensure inner container is at least as tall and wide as the canvas
         canvas_height = event.height
         canvas_width = event.width
         self.canvas.itemconfig(self.canvas_window, height=canvas_height)
-        min_width = len(self.statuses) * 272 + 24
+        min_width = len(self.statuses) * 272 + 28
         if canvas_width > min_width:
             self.canvas.itemconfig(self.canvas_window, width=canvas_width)
         else:
@@ -179,24 +191,51 @@ class KanbanView(tk.Frame):
             self.column_count_labels[s.id].configure(text=str(count))
             if count == 0 and s.id in self.column_cards_frames:
                 frame = self.column_cards_frames[s.id]
-                empty_box = tk.Frame(frame, bg=theme.COLOR_CARD, highlightbackground=theme.COLOR_BORDER, highlightthickness=1, padx=12, pady=16)
-                empty_box.pack(fill="x", pady=8, padx=2)
-                
+                empty_box = tk.Frame(
+                    frame,
+                    bg=theme.COLOR_CARD,
+                    highlightbackground=theme.COLOR_BORDER,
+                    highlightthickness=1,
+                    padx=14,
+                    pady=20
+                )
+                empty_box.pack(fill="x", pady=10, padx=4)
+
+                tk.Label(
+                    empty_box,
+                    text="📋",
+                    font=(theme.FONT_FAMILY, 18),
+                    bg=theme.COLOR_CARD,
+                    fg=theme.COLOR_TEXT_MUTED
+                ).pack(pady=(0, 4))
+
                 tk.Label(
                     empty_box,
                     text=f"No {s.name} tasks",
+                    font=theme.FONT_BODY_BOLD,
+                    fg=theme.COLOR_TEXT_SECONDARY,
+                    bg=theme.COLOR_CARD
+                ).pack()
+
+                tk.Label(
+                    empty_box,
+                    text="Tasks in this column will appear here",
                     font=theme.FONT_CAPTION,
                     fg=theme.COLOR_TEXT_MUTED,
                     bg=theme.COLOR_CARD
-                ).pack()
+                ).pack(pady=(2, 8))
 
                 add_link = tk.Label(
                     empty_box,
                     text="+ Create task here",
                     font=theme.FONT_BADGE,
                     fg=theme.COLOR_BLUE,
-                    bg=theme.COLOR_CARD,
+                    bg=theme.COLOR_BLUE_LIGHT,
+                    padx=10,
+                    pady=4,
                     cursor="hand2"
                 )
-                add_link.pack(pady=(4, 0))
+                add_link.pack()
                 add_link.bind("<Button-1>", lambda e, sid=s.id: self.on_create_issue_with_status(sid))
+                add_link.bind("<Enter>", lambda e, b=add_link: b.configure(bg=theme.COLOR_BLUE, fg=theme.COLOR_TEXT_WHITE))
+                add_link.bind("<Leave>", lambda e, b=add_link: b.configure(bg=theme.COLOR_BLUE_LIGHT, fg=theme.COLOR_BLUE))

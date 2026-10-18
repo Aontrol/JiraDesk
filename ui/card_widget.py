@@ -75,18 +75,18 @@ class CardWidget(tk.Frame):
         )
         prio_lbl.pack(side="right")
 
-        # Row 2: Title / Summary (wrapped cleanly)
-        title_lbl = tk.Label(
+        # Row 2: Title / Summary (dynamically wrapping)
+        self.title_lbl = tk.Label(
             self,
             text=self.issue.title,
             font=theme.FONT_BODY_BOLD,
             fg=theme.COLOR_TEXT_PRIMARY,
             bg=theme.COLOR_CARD,
-            wraplength=210,
+            wraplength=230,
             justify="left",
             anchor="w"
         )
-        title_lbl.pack(fill="x", pady=(2, 8))
+        self.title_lbl.pack(fill="x", pady=(2, 8))
 
         # Row 3: Meta & Quick Status Move Buttons
         bottom_row = tk.Frame(self, bg=theme.COLOR_CARD)
@@ -100,8 +100,8 @@ class CardWidget(tk.Frame):
                 font=theme.FONT_CAPTION,
                 fg=theme.COLOR_TEXT_SECONDARY,
                 bg=theme.COLOR_HOVER,
-                padx=5,
-                pady=1
+                padx=6,
+                pady=2
             )
             time_lbl.pack(side="left")
 
@@ -109,7 +109,7 @@ class CardWidget(tk.Frame):
         action_box = tk.Frame(bottom_row, bg=theme.COLOR_CARD)
         action_box.pack(side="right")
 
-        # 1-Click Status Navigation (Left / Right Arrow)
+        # Find status index for 1-click status transitions
         curr_status_idx = -1
         for idx, s in enumerate(self.statuses):
             if s.id == self.issue.status_id:
@@ -125,12 +125,14 @@ class CardWidget(tk.Frame):
                 font=(theme.FONT_FAMILY, 9, "bold"),
                 fg=theme.COLOR_TEXT_SECONDARY,
                 bg=theme.COLOR_HOVER,
-                padx=5,
-                pady=1,
+                padx=6,
+                pady=2,
                 cursor="hand2"
             )
-            btn_prev.pack(side="left", padx=(0, 2))
+            btn_prev.pack(side="left", padx=(0, 3))
             btn_prev.bind("<Button-1>", lambda e, sid=prev_status.id: self.on_status_change(self.issue.id, sid))
+            btn_prev.bind("<Enter>", lambda e, b=btn_prev: b.configure(bg=theme.COLOR_BLUE_LIGHT, fg=theme.COLOR_BLUE))
+            btn_prev.bind("<Leave>", lambda e, b=btn_prev: b.configure(bg=theme.COLOR_HOVER, fg=theme.COLOR_TEXT_SECONDARY))
 
         # Next status arrow button (▶)
         if curr_status_idx >= 0 and curr_status_idx < len(self.statuses) - 1:
@@ -141,12 +143,14 @@ class CardWidget(tk.Frame):
                 font=(theme.FONT_FAMILY, 9, "bold"),
                 fg=theme.COLOR_BLUE,
                 bg=theme.COLOR_BLUE_LIGHT,
-                padx=5,
-                pady=1,
+                padx=6,
+                pady=2,
                 cursor="hand2"
             )
             btn_next.pack(side="left", padx=(0, 4))
             btn_next.bind("<Button-1>", lambda e, sid=next_status.id: self.on_status_change(self.issue.id, sid))
+            btn_next.bind("<Enter>", lambda e, b=btn_next: b.configure(bg=theme.COLOR_BLUE, fg=theme.COLOR_TEXT_WHITE))
+            btn_next.bind("<Leave>", lambda e, b=btn_next: b.configure(bg=theme.COLOR_BLUE_LIGHT, fg=theme.COLOR_BLUE))
 
         # "⋮" Action Menu Button
         more_btn = tk.Label(
@@ -156,12 +160,18 @@ class CardWidget(tk.Frame):
             fg=theme.COLOR_TEXT_MUTED,
             bg=theme.COLOR_CARD,
             cursor="hand2",
-            padx=2
+            padx=4,
+            pady=1
         )
         more_btn.pack(side="left")
         more_btn.bind("<Button-1>", self._show_context_menu)
+        more_btn.bind("<Enter>", lambda e, b=more_btn: b.configure(bg=theme.COLOR_HOVER, fg=theme.COLOR_TEXT_PRIMARY))
+        more_btn.bind("<Leave>", lambda e, b=more_btn: b.configure(bg=theme.COLOR_CARD, fg=theme.COLOR_TEXT_MUTED))
 
     def _bind_events(self):
+        # Dynamically adapt title wraplength when card width changes
+        self.bind("<Configure>", self._on_configure)
+
         # Attach hover and click events
         self.bind("<Enter>", self._on_enter)
         self.bind("<Leave>", self._on_leave)
@@ -172,6 +182,11 @@ class CardWidget(tk.Frame):
             if not isinstance(child, tk.Frame):
                 child.bind("<Double-Button-1>", lambda e: self.on_open_issue(self.issue.id))
                 child.bind("<Button-3>", self._show_context_menu)
+
+    def _on_configure(self, event):
+        # Ensure title wraps to current card width (minus 28px padding)
+        new_wrap = max(180, event.width - 28)
+        self.title_lbl.configure(wraplength=new_wrap)
 
     def _on_enter(self, event=None):
         self.configure(highlightbackground=theme.COLOR_BLUE, highlightthickness=1)
@@ -186,8 +201,8 @@ class CardWidget(tk.Frame):
 
     def _show_context_menu(self, event):
         menu = tk.Menu(self, tearoff=0, bg=theme.COLOR_CARD, fg=theme.COLOR_TEXT_PRIMARY, font=theme.FONT_BODY)
-        menu.add_command(label="Open / Edit Issue", command=lambda: self.on_open_issue(self.issue.id))
-        menu.add_command(label="Log Work Time", command=lambda: self.on_log_time(self.issue.id))
+        menu.add_command(label="✏️  Open / Edit Issue", command=lambda: self.on_open_issue(self.issue.id))
+        menu.add_command(label="⏱  Log Work Time", command=lambda: self.on_log_time(self.issue.id))
         menu.add_separator()
 
         status_menu = tk.Menu(menu, tearoff=0, bg=theme.COLOR_CARD, fg=theme.COLOR_TEXT_PRIMARY, font=theme.FONT_BODY)
@@ -197,10 +212,10 @@ class CardWidget(tk.Frame):
                     label=f"Move to {s.name}",
                     command=lambda sid=s.id: self.on_status_change(self.issue.id, sid)
                 )
-        menu.add_cascade(label="Move to Status...", menu=status_menu)
+        menu.add_cascade(label="↗️  Move to Status...", menu=status_menu)
 
         menu.add_separator()
-        menu.add_command(label="Delete Issue", command=lambda: self.on_delete_issue(self.issue.id))
+        menu.add_command(label="🗑️  Delete Issue", command=lambda: self.on_delete_issue(self.issue.id))
 
         try:
             menu.tk_popup(event.x_root, event.y_root)

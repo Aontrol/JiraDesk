@@ -20,20 +20,7 @@ class JiraDeskApp(tk.Tk):
     def __init__(self, db_path: Optional[str] = None):
         super().__init__()
         self.title("JiraDesk — Personal Workflow Tracker")
-        # Desired window dimensions
-        width = 1280
-        height = 820
-
-        # Get user's screen dimensions
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-
-        # Calculate center coordinates (with safety floor at 0)
-        x = max(0, int((screen_width - width) / 2))
-        y = max(0, int((screen_height - height) / 2))
-
-        # Apply centered geometry
-        self.geometry(f"{width}x{height}+{x}+{y}")
+        self.geometry("1280x820")
         self.minsize(980, 640)
 
         theme.apply_google_theme(self)
@@ -73,20 +60,9 @@ class JiraDeskApp(tk.Tk):
         header = tk.Frame(self, bg=theme.COLOR_CARD, padx=20, pady=10, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
         header.pack(fill="x")
 
-        # Left: App Brand & Title
+        # Left: App Brand & Subtitle
         left_box = tk.Frame(header, bg=theme.COLOR_CARD)
         left_box.pack(side="left")
-
-        logo_box = tk.Label(
-            left_box,
-            text="⚡",
-            font=(theme.FONT_FAMILY, 15, "bold"),
-            fg=theme.COLOR_BLUE,
-            bg=theme.COLOR_BLUE_LIGHT,
-            padx=8,
-            pady=4
-        )
-        logo_box.pack(side="left", padx=(0, 10))
 
         title_box = tk.Frame(left_box, bg=theme.COLOR_CARD)
         title_box.pack(side="left")
@@ -101,84 +77,163 @@ class JiraDeskApp(tk.Tk):
         controls_box = tk.Frame(header, bg=theme.COLOR_CARD)
         controls_box.pack(side="right")
 
-        # Project Selector
-        tk.Label(controls_box, text="Project:", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_CARD).pack(side="left", padx=(0, 6))
-        self.proj_combo = ttk.Combobox(controls_box, state="readonly", width=16, font=theme.FONT_BODY)
-        self.proj_combo.pack(side="left", padx=(0, 4))
+        # 1. Project Selector Group
+        proj_group = tk.Frame(controls_box, bg=theme.COLOR_CARD)
+        proj_group.pack(side="left", padx=(0, 10))
+
+        tk.Label(proj_group, text="Project:", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_CARD).pack(side="left", padx=(0, 6))
+        self.proj_combo = ttk.Combobox(proj_group, state="readonly", width=16, font=theme.FONT_BODY)
+        self.proj_combo.pack(side="left", padx=(0, 6))
         self.proj_combo.bind("<<ComboboxSelected>>", self._on_project_changed)
 
-        new_proj_btn = ttk.Button(controls_box, text="+ Project", style="Secondary.TButton", command=self._open_new_project_dialog)
-        new_proj_btn.pack(side="left", padx=(0, 10))
+        new_proj_btn = ttk.Button(proj_group, text="+ Project", style="Secondary.TButton", command=self._open_new_project_dialog)
+        new_proj_btn.pack(side="left")
 
-        # Search Bar with Clear Button
-        search_frame = tk.Frame(controls_box, bg=theme.COLOR_CARD, highlightbackground=theme.COLOR_BORDER, highlightthickness=1, padx=6, pady=2)
-        search_frame.pack(side="left", padx=(0, 10))
+        # Divider between project and search
+        tk.Frame(controls_box, bg=theme.COLOR_BORDER, width=1, height=22).pack(side="left", padx=(0, 10))
 
-        tk.Label(search_frame, text="🔍", font=theme.FONT_CAPTION, bg=theme.COLOR_CARD, fg=theme.COLOR_TEXT_MUTED).pack(side="left", padx=(0, 4))
-        self.search_entry = tk.Entry(search_frame, font=theme.FONT_BODY, bg=theme.COLOR_CARD, fg=theme.COLOR_TEXT_PRIMARY, relief="flat", width=18)
-        self.search_entry.pack(side="left", ipady=3)
+        # 2. Google Material Search Bar with Dynamic Focus Highlight
+        self.search_frame = tk.Frame(
+            controls_box,
+            bg=theme.COLOR_HOVER,
+            highlightbackground=theme.COLOR_BORDER,
+            highlightthickness=1,
+            padx=8,
+            pady=3
+        )
+        self.search_frame.pack(side="left", padx=(0, 10))
+
+        self.lbl_search_icon = tk.Label(self.search_frame, text="🔍", font=theme.FONT_CAPTION, bg=theme.COLOR_HOVER, fg=theme.COLOR_TEXT_MUTED)
+        self.lbl_search_icon.pack(side="left", padx=(0, 4))
+
+        self.search_entry = tk.Entry(
+            self.search_frame,
+            font=theme.FONT_BODY,
+            bg=theme.COLOR_HOVER,
+            fg=theme.COLOR_TEXT_PRIMARY,
+            insertbackground=theme.COLOR_BLUE,
+            relief="flat",
+            width=18
+        )
+        self.search_entry.pack(side="left", ipady=2)
         self.search_entry.bind("<KeyRelease>", self._on_search_key)
+        self.search_entry.bind("<FocusIn>", self._on_search_focus_in)
+        self.search_entry.bind("<FocusOut>", self._on_search_focus_out)
 
-        self.btn_clear_search = tk.Label(search_frame, text="✕", font=theme.FONT_BADGE, fg=theme.COLOR_TEXT_MUTED, bg=theme.COLOR_CARD, cursor="hand2")
-        self.btn_clear_search.pack(side="left", padx=(2, 2))
+        self.btn_clear_search = tk.Label(
+            self.search_frame,
+            text="✕",
+            font=theme.FONT_BADGE,
+            fg=theme.COLOR_TEXT_MUTED,
+            bg=theme.COLOR_HOVER,
+            cursor="hand2",
+            padx=2
+        )
+        self.btn_clear_search.pack(side="left", padx=(2, 0))
         self.btn_clear_search.bind("<Button-1>", self._clear_search)
+        self.btn_clear_search.bind("<Enter>", lambda e: self.btn_clear_search.configure(fg=theme.COLOR_TEXT_PRIMARY))
+        self.btn_clear_search.bind("<Leave>", lambda e: self.btn_clear_search.configure(fg=theme.COLOR_TEXT_MUTED))
         self.btn_clear_search.pack_forget()
 
-        # View Switcher (Board vs List)
+        # 3. Modern Segmented View Switcher Pill (Board vs List)
         view_toggle_frame = tk.Frame(controls_box, bg=theme.COLOR_HOVER, padx=2, pady=2)
-        view_toggle_frame.pack(side="left", padx=(0, 10))
+        view_toggle_frame.pack(side="left", padx=(0, 12))
 
-        self.btn_kanban = tk.Button(
+        self.btn_kanban = tk.Label(
             view_toggle_frame,
-            text="Board",
+            text="⊞ Board",
             font=theme.FONT_CAPTION,
             bg=theme.COLOR_CARD,
             fg=theme.COLOR_BLUE,
-            relief="flat",
             padx=10,
-            pady=3,
-            cursor="hand2",
-            command=lambda: self._set_view_mode("kanban")
+            pady=4,
+            cursor="hand2"
         )
         self.btn_kanban.pack(side="left")
+        self.btn_kanban.bind("<Button-1>", lambda e: self._set_view_mode("kanban"))
 
-        self.btn_table = tk.Button(
+        self.btn_table = tk.Label(
             view_toggle_frame,
-            text="List",
+            text="☰ List",
             font=theme.FONT_CAPTION,
             bg=theme.COLOR_HOVER,
             fg=theme.COLOR_TEXT_SECONDARY,
-            relief="flat",
             padx=10,
-            pady=3,
-            cursor="hand2",
-            command=lambda: self._set_view_mode("table")
+            pady=4,
+            cursor="hand2"
         )
         self.btn_table.pack(side="left")
+        self.btn_table.bind("<Button-1>", lambda e: self._set_view_mode("table"))
 
-        # "+ Create Issue" Primary Button
+        # 4. Action Buttons
         create_btn = ttk.Button(controls_box, text="+ Create Issue", style="Primary.TButton", command=self._open_new_issue_dialog)
         create_btn.pack(side="left", padx=(0, 8))
 
-        # "⚙ Manage Data & Backup" Dropdown Menu Button
         self.btn_data_menu = ttk.Button(controls_box, text="⚙ Data & Backup ▾", style="Secondary.TButton", command=self._show_data_menu)
         self.btn_data_menu.pack(side="left")
 
+    def _on_search_focus_in(self, event=None):
+        self.search_frame.configure(bg=theme.COLOR_CARD, highlightbackground=theme.COLOR_BLUE, highlightthickness=1)
+        self.lbl_search_icon.configure(bg=theme.COLOR_CARD, fg=theme.COLOR_BLUE)
+        self.search_entry.configure(bg=theme.COLOR_CARD)
+        self.btn_clear_search.configure(bg=theme.COLOR_CARD)
+
+    def _on_search_focus_out(self, event=None):
+        if not self.search_term:
+            self.search_frame.configure(bg=theme.COLOR_HOVER, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
+            self.lbl_search_icon.configure(bg=theme.COLOR_HOVER, fg=theme.COLOR_TEXT_MUTED)
+            self.search_entry.configure(bg=theme.COLOR_HOVER)
+            self.btn_clear_search.configure(bg=theme.COLOR_HOVER)
+        else:
+            self.search_frame.configure(highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
+
+    def _create_chip(self, parent, text, icon, fg_color, bg_color):
+        """Creates a modern Google Material chip widget."""
+        chip_frame = tk.Frame(
+            parent,
+            bg=bg_color,
+            highlightbackground=theme.COLOR_BORDER,
+            highlightthickness=1,
+            padx=8,
+            pady=3
+        )
+        chip_frame.pack(side="left", padx=(0, 8))
+
+        icon_lbl = tk.Label(chip_frame, text=icon, font=theme.FONT_CAPTION, fg=fg_color, bg=bg_color)
+        icon_lbl.pack(side="left", padx=(0, 4))
+
+        val_lbl = tk.Label(chip_frame, text=text, font=theme.FONT_BADGE, fg=fg_color, bg=bg_color)
+        val_lbl.pack(side="left")
+
+        return chip_frame, val_lbl
+
     def _build_stats_bar(self):
-        self.stats_bar = tk.Frame(self, bg=theme.COLOR_SURFACE, padx=20, pady=8)
+        self.stats_bar_outer = tk.Frame(self, bg=theme.COLOR_SURFACE)
+        self.stats_bar_outer.pack(fill="x")
+
+        self.stats_bar = tk.Frame(self.stats_bar_outer, bg=theme.COLOR_SURFACE, padx=20, pady=8)
         self.stats_bar.pack(fill="x")
 
-        self.chip_total = tk.Label(self.stats_bar, text="Total: 0", font=theme.FONT_BADGE, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_CARD, padx=10, pady=4, relief="solid", bd=1)
-        self.chip_total.pack(side="left", padx=(0, 8))
+        # Clean Google Material metric chips
+        _, self.chip_total = self._create_chip(
+            self.stats_bar, "Total: 0", "📊", theme.COLOR_TEXT_PRIMARY, theme.COLOR_CARD
+        )
+        _, self.chip_todo = self._create_chip(
+            self.stats_bar, "To Do: 0", "⏳", theme.COLOR_BLUE, theme.COLOR_BLUE_LIGHT
+        )
+        _, self.chip_in_progress = self._create_chip(
+            self.stats_bar, "In Progress: 0", "⚡", theme.COLOR_AMBER_DARK, theme.COLOR_YELLOW_LIGHT
+        )
+        _, self.chip_done = self._create_chip(
+            self.stats_bar, "Done: 0", "✅", theme.COLOR_GREEN, theme.COLOR_GREEN_LIGHT
+        )
+        _, self.chip_time = self._create_chip(
+            self.stats_bar, "0m Logged", "⏱", theme.COLOR_TEXT_SECONDARY, theme.COLOR_HOVER
+        )
 
-        self.chip_in_progress = tk.Label(self.stats_bar, text="In Progress: 0", font=theme.FONT_BADGE, fg=theme.COLOR_AMBER_DARK, bg=theme.COLOR_YELLOW_LIGHT, padx=10, pady=4, relief="solid", bd=1)
-        self.chip_in_progress.pack(side="left", padx=(0, 8))
-
-        self.chip_done = tk.Label(self.stats_bar, text="Done: 0", font=theme.FONT_BADGE, fg=theme.COLOR_GREEN, bg=theme.COLOR_GREEN_LIGHT, padx=10, pady=4, relief="solid", bd=1)
-        self.chip_done.pack(side="left", padx=(0, 8))
-
-        self.chip_time = tk.Label(self.stats_bar, text="⏱ 0m Logged", font=theme.FONT_BADGE, fg=theme.COLOR_BLUE, bg=theme.COLOR_BLUE_LIGHT, padx=10, pady=4, relief="solid", bd=1)
-        self.chip_time.pack(side="left")
+        # Subtle bottom divider line
+        divider = tk.Frame(self.stats_bar_outer, bg=theme.COLOR_BORDER_LIGHT, height=1)
+        divider.pack(fill="x")
 
     def _build_content_area(self):
         self.content_frame = tk.Frame(self, bg=theme.COLOR_SURFACE)
@@ -209,12 +264,26 @@ class JiraDeskApp(tk.Tk):
         status_bar = tk.Frame(self, bg=theme.COLOR_CARD, padx=16, pady=6, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
         status_bar.pack(fill="x", side="bottom")
 
-        self.lbl_status_msg = tk.Label(status_bar, text="Ready", font=theme.FONT_CAPTION, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_CARD)
+        # Left status indicator
+        left_status = tk.Frame(status_bar, bg=theme.COLOR_CARD)
+        left_status.pack(side="left")
+
+        dot = tk.Label(left_status, text="●", font=(theme.FONT_FAMILY, 9), fg=theme.COLOR_GREEN, bg=theme.COLOR_CARD)
+        dot.pack(side="left", padx=(0, 4))
+
+        self.lbl_status_msg = tk.Label(left_status, text="Ready", font=theme.FONT_CAPTION, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_CARD)
         self.lbl_status_msg.pack(side="left")
 
+        # Right status indicator
+        right_status = tk.Frame(status_bar, bg=theme.COLOR_CARD)
+        right_status.pack(side="right")
+
+        lbl_shortcuts = tk.Label(right_status, text="Ctrl+N: New • Ctrl+F: Search • F5: Refresh", font=theme.FONT_CAPTION, fg=theme.COLOR_TEXT_MUTED, bg=theme.COLOR_CARD)
+        lbl_shortcuts.pack(side="left", padx=(0, 16))
+
         db_name = os.path.basename(self.db.db_path)
-        lbl_db = tk.Label(status_bar, text=f"SQLite: {db_name}", font=theme.FONT_CAPTION, fg=theme.COLOR_TEXT_MUTED, bg=theme.COLOR_CARD)
-        lbl_db.pack(side="right")
+        lbl_db = tk.Label(right_status, text=f"🗄️ SQLite: {db_name}", font=theme.FONT_CAPTION, fg=theme.COLOR_TEXT_MUTED, bg=theme.COLOR_CARD)
+        lbl_db.pack(side="left")
 
     def _bind_global_shortcuts(self):
         self.bind("<Control-n>", lambda e: self._open_new_issue_dialog())
@@ -233,7 +302,6 @@ class JiraDeskApp(tk.Tk):
         menu.add_command(label="⚠️  Start Fresh (Clear All Data)...", command=self._action_start_fresh)
         menu.add_separator()
 
-        # Delete active project option
         if self.current_project_id:
             curr_proj = self.db.get_project_by_id(self.current_project_id)
             if curr_proj:
@@ -315,7 +383,6 @@ class JiraDeskApp(tk.Tk):
             messagebox.showinfo("Reset Completed", "Workspace has been reset with sample tasks and projects.", parent=self)
 
     def _action_start_fresh(self):
-        # Dumb-proof warning with option to backup
         ask_backup = messagebox.askyesnocancel(
             "Start Fresh (Clear All Data)",
             "Would you like to backup your current database before starting fresh?\n\n• Yes: Backup first, then start fresh\n• No: Start fresh immediately without backup\n• Cancel: Abort",
@@ -323,7 +390,7 @@ class JiraDeskApp(tk.Tk):
             parent=self
         )
         if ask_backup is None:
-            return  # Cancelled
+            return
 
         if ask_backup is True:
             self._action_backup_database()
@@ -364,14 +431,27 @@ class JiraDeskApp(tk.Tk):
 
         stats = self.db.get_statistics(self.current_project_id)
         self.chip_total.configure(text=f"Total: {stats['total']}")
+        
+        # Calculate to do count
+        todo_count = 0
+        for i in issues:
+            if i.status_id == 2 or i.status_name == "To Do":
+                todo_count += 1
+        self.chip_todo.configure(text=f"To Do: {todo_count}")
         self.chip_in_progress.configure(text=f"In Progress: {stats['in_progress']}")
         self.chip_done.configure(text=f"Done: {stats['done']}")
-        self.chip_time.configure(text=f"⏱ {stats['formatted_time']} Logged")
+        self.chip_time.configure(text=f"{stats['formatted_time']} Logged")
+
+        curr_proj_name = "All Projects"
+        if self.current_project_id:
+            p = self.db.get_project_by_id(self.current_project_id)
+            if p:
+                curr_proj_name = f"{p.key}"
 
         if self.search_term:
-            self.lbl_status_msg.configure(text=f"Filtering '{self.search_term}': {len(issues)} matching issue(s)")
+            self.lbl_status_msg.configure(text=f"Filtering '{self.search_term}': {len(issues)} matching issue(s) • {curr_proj_name}")
         else:
-            self.lbl_status_msg.configure(text=f"Loaded {len(issues)} issue(s)")
+            self.lbl_status_msg.configure(text=f"Loaded {len(issues)} issue(s) • {curr_proj_name}")
 
     def _update_project_dropdown(self):
         values = ["All Projects"] + [f"{p.key} - {p.name}" for p in self.projects]
@@ -400,7 +480,7 @@ class JiraDeskApp(tk.Tk):
     def _on_search_key(self, event=None):
         self.search_term = self.search_entry.get().strip()
         if self.search_term:
-            self.btn_clear_search.pack(side="left", padx=(2, 2))
+            self.btn_clear_search.pack(side="left", padx=(2, 0))
         else:
             self.btn_clear_search.pack_forget()
         self.refresh_all()
@@ -409,6 +489,7 @@ class JiraDeskApp(tk.Tk):
         self.search_entry.delete(0, tk.END)
         self.search_term = ""
         self.btn_clear_search.pack_forget()
+        self._on_search_focus_out()
         self.refresh_all()
 
     def _set_view_mode(self, mode: str):

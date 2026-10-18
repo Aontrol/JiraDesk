@@ -1,5 +1,5 @@
 """
-Polished and dumb-proof Issue Create & Edit Modal Dialog for JiraDesk.
+Polished and modern Google Material Issue Create & Edit Modal Dialog for JiraDesk.
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -24,8 +24,8 @@ class IssueDialog(tk.Toplevel):
         self.on_saved = on_saved
 
         self.title("Edit Issue" if self.issue else "Create Issue")
-        self.geometry("640x740")
-        self.minsize(560, 600)
+        self.geometry("660x760")
+        self.minsize(580, 620)
         self.configure(bg=theme.COLOR_SURFACE)
 
         self.transient(parent)
@@ -37,19 +37,31 @@ class IssueDialog(tk.Toplevel):
 
     def _build_ui(self):
         # Header banner
-        header = tk.Frame(self, bg=theme.COLOR_CARD, padx=20, pady=16, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
+        header = tk.Frame(self, bg=theme.COLOR_CARD, padx=24, pady=16, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
         header.pack(fill="x")
 
-        header_title = "Create New Issue" if not self.issue else f"{self.issue.key}: Edit Issue"
+        header_title = "Create New Issue" if not self.issue else f"Edit Issue: {self.issue.key}"
         lbl_title = tk.Label(header, text=header_title, font=theme.FONT_TITLE, fg=theme.COLOR_TEXT_PRIMARY, bg=theme.COLOR_CARD)
         lbl_title.pack(side="left")
+
+        if self.issue:
+            lbl_key = tk.Label(
+                header,
+                text=self.issue.key,
+                font=theme.FONT_BADGE,
+                fg=theme.COLOR_BLUE,
+                bg=theme.COLOR_BLUE_LIGHT,
+                padx=8,
+                pady=3
+            )
+            lbl_key.pack(side="right")
 
         # Scrollable form container
         canvas = tk.Canvas(self, bg=theme.COLOR_SURFACE, highlightthickness=0)
         v_scroll = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
         canvas.configure(yscrollcommand=v_scroll.set)
 
-        self.form = tk.Frame(canvas, bg=theme.COLOR_SURFACE, padx=24, pady=16)
+        self.form = tk.Frame(canvas, bg=theme.COLOR_SURFACE, padx=24, pady=18)
         canvas_window = canvas.create_window((0, 0), window=self.form, anchor="nw")
 
         canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=e.width))
@@ -61,53 +73,51 @@ class IssueDialog(tk.Toplevel):
 
         row = 0
 
-        # Project Selector
-        tk.Label(self.form, text="Project *", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).grid(row=row, column=0, sticky="w", pady=(0, 4))
+        # Row 0: Project Selector (full width)
+        tk.Label(self.form, text="Project *", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).grid(row=row, column=0, columnspan=2, sticky="w", pady=(0, 4))
         self.proj_combo = ttk.Combobox(self.form, state="readonly", font=theme.FONT_BODY)
         self.proj_combo["values"] = [f"{p.key} - {p.name}" for p in self.projects]
-        self.proj_combo.grid(row=row+1, column=0, columnspan=2, sticky="ew", pady=(0, 12))
+        self.proj_combo.grid(row=row+1, column=0, columnspan=2, sticky="ew", pady=(0, 14))
         row += 2
 
-        # Issue Type & Status (Two columns)
+        # Row 1: Issue Type & Priority (Symmetrical two-column grid)
         tk.Label(self.form, text="Issue Type", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).grid(row=row, column=0, sticky="w", pady=(0, 4))
-        tk.Label(self.form, text="Status", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).grid(row=row, column=1, sticky="w", pady=(0, 4), padx=(12, 0))
-        
+        tk.Label(self.form, text="Priority", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).grid(row=row, column=1, sticky="w", pady=(0, 4), padx=(12, 0))
+
         self.type_combo = ttk.Combobox(self.form, state="readonly", values=["Task", "Bug", "Story", "Epic"], font=theme.FONT_BODY)
-        self.type_combo.grid(row=row+1, column=0, sticky="ew", pady=(0, 12))
+        self.type_combo.grid(row=row+1, column=0, sticky="ew", pady=(0, 14))
 
-        self.status_combo = ttk.Combobox(self.form, state="readonly", values=[s.name for s in self.statuses], font=theme.FONT_BODY)
-        self.status_combo.grid(row=row+1, column=1, sticky="ew", pady=(0, 12), padx=(12, 0))
-        row += 2
-
-        # Priority
-        tk.Label(self.form, text="Priority", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).grid(row=row, column=0, sticky="w", pady=(0, 4))
         self.prio_combo = ttk.Combobox(self.form, state="readonly", values=["Low", "Medium", "High", "Urgent"], font=theme.FONT_BODY)
-        self.prio_combo.grid(row=row+1, column=0, sticky="ew", pady=(0, 12))
+        self.prio_combo.grid(row=row+1, column=1, sticky="ew", pady=(0, 14), padx=(12, 0))
         row += 2
 
-        # Title
+        # Row 2: Status (full width)
+        tk.Label(self.form, text="Status", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).grid(row=row, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        self.status_combo = ttk.Combobox(self.form, state="readonly", values=[s.name for s in self.statuses], font=theme.FONT_BODY)
+        self.status_combo.grid(row=row+1, column=0, columnspan=2, sticky="ew", pady=(0, 14))
+        row += 2
+
+        # Row 3: Title / Summary (full width) with Material focus ring
         tk.Label(self.form, text="Summary / Title *", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_PRIMARY, bg=theme.COLOR_SURFACE).grid(row=row, column=0, columnspan=2, sticky="w", pady=(0, 4))
-        self.title_entry = tk.Entry(self.form, font=theme.FONT_BODY, bg=theme.COLOR_CARD, fg=theme.COLOR_TEXT_PRIMARY, relief="solid", bd=1)
-        self.title_entry.grid(row=row+1, column=0, columnspan=2, sticky="ew", pady=(0, 14), ipady=5)
+        title_box, self.title_entry = theme.create_material_input(self.form, font=theme.FONT_BODY, ipady=5)
+        title_box.grid(row=row+1, column=0, columnspan=2, sticky="ew", pady=(0, 14))
         row += 2
 
-        # Description
+        # Row 4: Description with Material focus ring
         tk.Label(self.form, text="Description", font=theme.FONT_BODY_BOLD, fg=theme.COLOR_TEXT_SECONDARY, bg=theme.COLOR_SURFACE).grid(row=row, column=0, columnspan=2, sticky="w", pady=(0, 4))
-        desc_container = tk.Frame(self.form, bg=theme.COLOR_CARD, bd=1, relief="solid")
-        desc_container.grid(row=row+1, column=0, columnspan=2, sticky="ew", pady=(0, 16))
-        self.desc_text = tk.Text(desc_container, height=6, font=theme.FONT_BODY, bg=theme.COLOR_CARD, fg=theme.COLOR_TEXT_PRIMARY, relief="flat", padx=8, pady=8)
-        self.desc_text.pack(fill="both", expand=True)
+        desc_box, self.desc_text = theme.create_material_textarea(self.form, height=6, font=theme.FONT_BODY)
+        desc_box.grid(row=row+1, column=0, columnspan=2, sticky="ew", pady=(0, 16))
         row += 2
 
-        # Time Tracking Section (Both for Editing and New Issue initial log)
+        # Time Tracking Section
         worklog_box = tk.LabelFrame(
             self.form,
             text="  Time Tracking & Worklogs  ",
             font=theme.FONT_SECTION,
             fg=theme.COLOR_TEXT_PRIMARY,
             bg=theme.COLOR_SURFACE,
-            padx=12,
-            pady=10
+            padx=14,
+            pady=12
         )
         worklog_box.grid(row=row, column=0, columnspan=2, sticky="ew", pady=(0, 16))
         row += 1
@@ -116,17 +126,16 @@ class IssueDialog(tk.Toplevel):
         input_frame.pack(fill="x", pady=(0, 8))
 
         tk.Label(input_frame, text="Time Spent:", font=theme.FONT_BODY, bg=theme.COLOR_SURFACE).pack(side="left", padx=(0, 6))
-        self.time_val_entry = tk.Entry(input_frame, width=6, font=theme.FONT_BODY, relief="solid", bd=1)
-        self.time_val_entry.pack(side="left", ipady=3)
-        self.time_val_entry.insert(0, "30")
+        time_entry_box, self.time_val_entry = theme.create_material_input(input_frame, initial_text="30", width=6, ipady=3)
+        time_entry_box.pack(side="left")
 
         self.time_unit_combo = ttk.Combobox(input_frame, state="readonly", values=["Minutes", "Hours"], width=8, font=theme.FONT_BODY)
         self.time_unit_combo.current(0)
-        self.time_unit_combo.pack(side="left", padx=(4, 12))
+        self.time_unit_combo.pack(side="left", padx=(6, 12))
 
         tk.Label(input_frame, text="Notes:", font=theme.FONT_BODY, bg=theme.COLOR_SURFACE).pack(side="left", padx=(0, 6))
-        self.worklog_notes_entry = tk.Entry(input_frame, font=theme.FONT_BODY, relief="solid", bd=1)
-        self.worklog_notes_entry.pack(side="left", fill="x", expand=True, padx=(0, 8), ipady=3)
+        notes_box, self.worklog_notes_entry = theme.create_material_input(input_frame, ipady=3)
+        notes_box.pack(side="left", fill="x", expand=True, padx=(0, 8))
 
         if self.issue:
             log_btn = tk.Button(
@@ -137,30 +146,40 @@ class IssueDialog(tk.Toplevel):
                 fg=theme.COLOR_BLUE,
                 relief="flat",
                 cursor="hand2",
+                padx=8,
+                pady=3,
                 command=self._add_worklog
             )
-            log_btn.pack(side="right", padx=4)
+            log_btn.pack(side="right")
+            log_btn.bind("<Enter>", lambda e, b=log_btn: b.configure(bg=theme.COLOR_BLUE, fg=theme.COLOR_TEXT_WHITE))
+            log_btn.bind("<Leave>", lambda e, b=log_btn: b.configure(bg=theme.COLOR_BLUE_LIGHT, fg=theme.COLOR_BLUE))
+
+            # Modern Worklogs List container
+            list_container = tk.Frame(worklog_box, bg=theme.COLOR_CARD, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
+            list_container.pack(fill="x", pady=(6, 0))
 
             self.worklogs_listbox = tk.Listbox(
-                worklog_box,
+                list_container,
                 height=4,
                 font=theme.FONT_CAPTION,
                 bg=theme.COLOR_CARD,
                 fg=theme.COLOR_TEXT_SECONDARY,
-                relief="solid",
-                bd=1
+                selectbackground=theme.COLOR_BLUE_LIGHT,
+                selectforeground=theme.COLOR_BLUE,
+                relief="flat",
+                bd=0,
+                highlightthickness=0
             )
-            self.worklogs_listbox.pack(fill="x", pady=(4, 0))
+            self.worklogs_listbox.pack(fill="x", padx=6, pady=4)
             self._refresh_worklogs()
         else:
-            # For new issues, time entered here will be saved when issue is created
             tk.Label(
                 worklog_box,
-                text="ℹ️ Time entered above will be logged upon saving this new issue.",
+                text="ℹ️  Time entered above will be logged upon saving this new issue.",
                 font=theme.FONT_CAPTION,
                 fg=theme.COLOR_TEXT_MUTED,
                 bg=theme.COLOR_SURFACE
-            ).pack(anchor="w", pady=(2, 0))
+            ).pack(anchor="w", pady=(4, 0))
 
         self.form.columnconfigure(0, weight=1)
         self.form.columnconfigure(1, weight=1)
@@ -169,7 +188,7 @@ class IssueDialog(tk.Toplevel):
         canvas.pack(fill="both", expand=True)
 
         # Bottom Action Bar
-        bottom_bar = tk.Frame(self, bg=theme.COLOR_CARD, padx=20, pady=12, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
+        bottom_bar = tk.Frame(self, bg=theme.COLOR_CARD, padx=24, pady=14, highlightbackground=theme.COLOR_BORDER, highlightthickness=1)
         bottom_bar.pack(fill="x", side="bottom")
 
         tk.Label(
@@ -234,7 +253,7 @@ class IssueDialog(tk.Toplevel):
             self.worklogs_listbox.insert(tk.END, "  No work logged yet.")
         else:
             for l in logs:
-                note_str = f" - {l.notes}" if l.notes else ""
+                note_str = f" — {l.notes}" if l.notes else ""
                 self.worklogs_listbox.insert(
                     tk.END,
                     f"  ⏱ {l.formatted_time} [{l.logged_at[:16]}]{note_str}"
@@ -271,7 +290,6 @@ class IssueDialog(tk.Toplevel):
 
         selected_proj_idx = self.proj_combo.current()
         if selected_proj_idx < 0:
-            # Fallback to match text
             combo_val = self.proj_combo.get().strip()
             matched_proj = None
             for p in self.projects:

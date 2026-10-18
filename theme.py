@@ -1,5 +1,5 @@
 """
-Google Minimalist Material Design Theme for JiraDesk.
+Google Minimalist Material Design Theme & UI Component Helpers for JiraDesk.
 """
 import tkinter as tk
 from tkinter import ttk
@@ -24,6 +24,7 @@ COLOR_BLUE_HOVER = "#1557b0"     # Google Blue 700
 COLOR_BLUE_LIGHT = "#e8f0fe"     # Google Blue 50
 
 COLOR_GREEN = "#1e8e3e"          # Google Green 600
+COLOR_GREEN_HOVER = "#137333"    # Google Green 700
 COLOR_GREEN_LIGHT = "#e6f4ea"    # Google Green 50
 
 COLOR_YELLOW = "#f9ab00"         # Google Yellow 600
@@ -31,6 +32,7 @@ COLOR_AMBER_DARK = "#b06000"
 COLOR_YELLOW_LIGHT = "#fef7e0"   # Google Yellow 50
 
 COLOR_RED = "#d93025"            # Google Red 600
+COLOR_RED_HOVER = "#b31412"      # Google Red 700
 COLOR_RED_LIGHT = "#fce8e6"      # Google Red 50
 
 COLOR_PURPLE = "#a142f4"         # Google Purple 600
@@ -38,11 +40,11 @@ COLOR_PURPLE_LIGHT = "#f3e8fd"   # Google Purple 50
 
 # Status Color Map
 STATUS_COLORS = {
-    "Backlog": {"fg": COLOR_TEXT_SECONDARY, "bg": "#f1f3f4", "bar": "#80868b"},
-    "To Do": {"fg": COLOR_BLUE, "bg": COLOR_BLUE_LIGHT, "bar": COLOR_BLUE},
-    "In Progress": {"fg": COLOR_AMBER_DARK, "bg": COLOR_YELLOW_LIGHT, "bar": COLOR_YELLOW},
-    "In Review": {"fg": COLOR_PURPLE, "bg": COLOR_PURPLE_LIGHT, "bar": COLOR_PURPLE},
-    "Done": {"fg": COLOR_GREEN, "bg": COLOR_GREEN_LIGHT, "bar": COLOR_GREEN},
+    "Backlog": {"fg": COLOR_TEXT_SECONDARY, "bg": "#f1f3f4", "bar": "#80868b", "icon": "📦"},
+    "To Do": {"fg": COLOR_BLUE, "bg": COLOR_BLUE_LIGHT, "bar": COLOR_BLUE, "icon": "⏳"},
+    "In Progress": {"fg": COLOR_AMBER_DARK, "bg": COLOR_YELLOW_LIGHT, "bar": COLOR_YELLOW, "icon": "⚡"},
+    "In Review": {"fg": COLOR_PURPLE, "bg": COLOR_PURPLE_LIGHT, "bar": COLOR_PURPLE, "icon": "🔍"},
+    "Done": {"fg": COLOR_GREEN, "bg": COLOR_GREEN_LIGHT, "bar": COLOR_GREEN, "icon": "✅"},
 }
 
 # Priority Icons and Color Map
@@ -126,26 +128,36 @@ def apply_google_theme(root: tk.Tk):
         foreground=[("active", COLOR_TEXT_PRIMARY)]
     )
 
-    # Clean Material Entry Field
+    # Clean Scrollbar
     style.configure(
-        "Google.TEntry",
-        fieldbackground=COLOR_CARD,
-        foreground=COLOR_TEXT_PRIMARY,
-        bordercolor=COLOR_BORDER,
-        lightcolor=COLOR_BLUE,
-        darkcolor=COLOR_BORDER,
-        padding=6,
+        "TScrollbar",
+        background=COLOR_BORDER,
+        troughcolor=COLOR_SURFACE,
+        borderwidth=0,
+        arrowsize=0,
         relief="flat"
+    )
+    style.map(
+        "TScrollbar",
+        background=[("active", COLOR_TEXT_MUTED), ("pressed", COLOR_TEXT_SECONDARY)]
     )
 
     # Combobox
     style.configure(
-        "Google.TCombobox",
+        "TCombobox",
         fieldbackground=COLOR_CARD,
         background=COLOR_CARD,
         foreground=COLOR_TEXT_PRIMARY,
         arrowcolor=COLOR_TEXT_SECONDARY,
-        padding=5
+        padding=5,
+        borderwidth=1,
+        relief="solid"
+    )
+    style.map(
+        "TCombobox",
+        fieldbackground=[("readonly", COLOR_CARD)],
+        selectbackground=[("readonly", COLOR_BLUE_LIGHT)],
+        selectforeground=[("readonly", COLOR_BLUE)]
     )
 
     # Treeview Table (Backlog View)
@@ -155,7 +167,7 @@ def apply_google_theme(root: tk.Tk):
         foreground=COLOR_TEXT_PRIMARY,
         fieldbackground=COLOR_CARD,
         font=FONT_BODY,
-        rowheight=34,
+        rowheight=36,
         borderwidth=0
     )
     style.configure(
@@ -163,7 +175,7 @@ def apply_google_theme(root: tk.Tk):
         background=COLOR_HOVER,
         foreground=COLOR_TEXT_SECONDARY,
         font=FONT_BODY_BOLD,
-        padding=6,
+        padding=(8, 6),
         borderwidth=0
     )
     style.map(
@@ -171,3 +183,88 @@ def apply_google_theme(root: tk.Tk):
         background=[("selected", COLOR_BLUE_LIGHT)],
         foreground=[("selected", COLOR_BLUE)]
     )
+
+
+def create_material_input(parent, initial_text="", font=FONT_BODY, width=None, ipady=4, placeholder=""):
+    """
+    Creates a Google Material styled Entry wrapped inside a subtle container frame
+    with interactive Google Blue focus highlight.
+    Returns (container_frame, entry_widget).
+    """
+    container = tk.Frame(
+        parent,
+        bg=COLOR_CARD,
+        highlightbackground=COLOR_BORDER,
+        highlightthickness=1,
+        padx=8,
+        pady=2
+    )
+
+    entry_kwargs = {
+        "master": container,
+        "font": font,
+        "bg": COLOR_CARD,
+        "fg": COLOR_TEXT_PRIMARY,
+        "insertbackground": COLOR_BLUE,
+        "relief": "flat",
+    }
+    if width is not None:
+        entry_kwargs["width"] = width
+
+    entry = tk.Entry(**entry_kwargs)
+    entry.pack(fill="x", expand=True, ipady=ipady)
+
+    if initial_text:
+        entry.insert(0, initial_text)
+
+    def _on_focus_in(event):
+        container.configure(highlightbackground=COLOR_BLUE, highlightthickness=1)
+
+    def _on_focus_out(event):
+        container.configure(highlightbackground=COLOR_BORDER, highlightthickness=1)
+
+    entry.bind("<FocusIn>", _on_focus_in)
+    entry.bind("<FocusOut>", _on_focus_out)
+
+    return container, entry
+
+
+def create_material_textarea(parent, height=6, font=FONT_BODY):
+    """
+    Creates a Google Material styled Text widget wrapped in a subtle container
+    with interactive Google Blue focus highlight.
+    Returns (container_frame, text_widget).
+    """
+    container = tk.Frame(
+        parent,
+        bg=COLOR_CARD,
+        highlightbackground=COLOR_BORDER,
+        highlightthickness=1,
+        padx=4,
+        pady=4
+    )
+
+    text = tk.Text(
+        container,
+        height=height,
+        font=font,
+        bg=COLOR_CARD,
+        fg=COLOR_TEXT_PRIMARY,
+        insertbackground=COLOR_BLUE,
+        relief="flat",
+        padx=6,
+        pady=6,
+        wrap="word"
+    )
+    text.pack(fill="both", expand=True)
+
+    def _on_focus_in(event):
+        container.configure(highlightbackground=COLOR_BLUE, highlightthickness=1)
+
+    def _on_focus_out(event):
+        container.configure(highlightbackground=COLOR_BORDER, highlightthickness=1)
+
+    text.bind("<FocusIn>", _on_focus_in)
+    text.bind("<FocusOut>", _on_focus_out)
+
+    return container, text
